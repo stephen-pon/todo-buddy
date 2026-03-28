@@ -1,0 +1,17 @@
+{
+  "name": "todo-buddy",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm run --parallel --filter backend --filter frontend dev",
+    "build": "pnpm run --filter shared build && pnpm run --filter backend build && pnpm run --filter frontend build",
+    "typecheck": "pnpm run --filter backend typecheck && pnpm run --filter frontend typecheck",
+    "test": "pnpm run --filter backend test && pnpm run --filter frontend test",
+    "db:push": "pnpm run --filter backend db:push",
+    "db:generate": "pnpm run --filter backend db:generate",
+    "db:seed": "pnpm run --filter backend db:seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
