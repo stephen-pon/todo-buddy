@@ -1,0 +1,13 @@
+{
+  "planPath": "docs/superpowers/plans/2026-03-28-todo-list.md",
+  "tasks": [
+    {"id": 4, "subject": "Task 1: Shared types and schemas", "status": "pending"},
+    {"id": 5, "subject": "Task 2: Database table and relations", "status": "pending", "blockedBy": [4]},
+    {"id": 6, "subject": "Task 3: Backend API routes", "status": "pending", "blockedBy": [4, 5]},
+    {"id": 7, "subject": "Task 4: Install frontend dependencies", "status": "pending"},
+    {"id": 8, "subject": "Task 5: TodosPage frontend", "status": "pending", "blockedBy": [6, 7]},
+    {"id": 9, "subject": "Task 6: Delete unused DashboardPage", "status": "pending", "blockedBy": [8]},
+    {"id": 10, "subject": "Task 7: Smoke test", "status": "pending", "blockedBy": [8, 9]}
+  ],
+  "lastUpdated": "2026-03-28T00:00:00Z"
+}
