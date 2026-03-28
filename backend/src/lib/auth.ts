@@ -30,6 +30,34 @@ export const auth = betterAuth({
       maxAge: 60 * 5,
     },
   },
+  ...(process.env.COOKIE_DOMAIN && {
+    cookies: {
+      sessionToken: {
+        options: {
+          domain: process.env.COOKIE_DOMAIN,
+          secure: true,
+          sameSite: 'none' as const,
+          path: '/',
+        },
+      },
+      state: {
+        options: {
+          domain: process.env.COOKIE_DOMAIN,
+          secure: true,
+          sameSite: 'none' as const,
+          path: '/',
+        },
+      },
+      pkceCodeVerifier: {
+        options: {
+          domain: process.env.COOKIE_DOMAIN,
+          secure: true,
+          sameSite: 'none' as const,
+          path: '/',
+        },
+      },
+    },
+  }),
   advanced: {
     database: {
       generateId: 'uuid',
