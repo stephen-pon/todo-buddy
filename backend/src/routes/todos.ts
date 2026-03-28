@@ -79,8 +79,12 @@ const todosRoute = new Hono<{ Variables: Variables }>()
     const { items } = c.req.valid('json');
     const currentUser = c.get('user');
 
-    // Validate all IDs belong to the authenticated user
+    // Validate no duplicate IDs
     const itemIds = items.map((i) => i.id);
+    if (new Set(itemIds).size !== itemIds.length)
+      return c.json({ error: 'Duplicate IDs in reorder request' }, 400);
+
+    // Validate all IDs belong to the authenticated user
     const owned = await db.query.todos.findMany({
       where: and(
         eq(todos.userId, currentUser.id),
