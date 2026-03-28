@@ -5,4 +5,7 @@ import type { AppType } from '@todo-buddy/backend';
 // In production, VITE_API_URL points to the backend origin (e.g. https://api.kiniva.app).
 const baseURL = import.meta.env.VITE_API_URL || '/';
 
-export const client = hc<AppType>(baseURL);
+export const client = hc<AppType>(baseURL, {
+  fetch: (input, init) =>
+    fetch(input, { ...init, credentials: 'include' }),
+});
