@@ -1,0 +1,41 @@
+{
+  "file_hashes": {
+    "Dockerfile": "60306adc4420d53ec9fc0b94383f0063e86384fed67574bf48ad5177b0e81146",
+    "backend/drizzle.config.ts": "0a85be38ea8cb348889299f18e7e1ca074700a88aeff14d3a339d6fc6ed033e9",
+    "backend/src/db/auth-schema.ts": "81e9cbad02180ea4c8a4be1e328db415806915f84eea1c518f4ef90754b719b2",
+    "backend/src/db/client.ts": "64aaefb3a007cdf91c7442a5f63bf0488d8ecf44bd52bfd4c011dd95c79c1e79",
+    "backend/src/db/schema.ts": "dc3eb70d87aff5187ede2150338cc47fcf30c2e9282b92615fae0c83b56d1bc5",
+    "backend/src/db/seed.ts": "5b53982852ab5f96401792fe77fd83fe83d01a9eead75b90b2bc50a1b1118a2c",
+    "backend/src/index.ts": "50da9ac02208cf55457a9868793b042bd31bf93fc60fb943365bd7c017f6b3ab",
+    "backend/src/lib/auth.ts": "be6c85750f9249c75b7b18660798e4615710fd608b554a70254f9f1cc3cbdba7",
+    "backend/src/middleware/auth.ts": "b62c1634ba2f67806774ea180c2e583301c94fe35b7fb35a084f32720645e053",
+    "backend/src/middleware/error-handler.ts": "4c3581417a96c75e0b26ecc7ddd4e52fc72146f1516e8da06c3e862db25ba57b",
+    "backend/src/routes/todos.ts": "8e86dcdb64b696b0e3cb3e4568405d3a8122f236b42c033acd7680c7e5c96eec",
+    "backend/src/types/hono.ts": "95a26a063cd712314a74ddaf404243b0aa1a0085d4659594ca00d0921c9e13dc",
+    "backend/vitest.config.ts": "6b610b8eb1b2f14230fce0121cff0905e782c59e13ba705304435b093af4812f",
+    "frontend/src/App.tsx": "e75699263b78a278fdd2564ec9c61ecb3ded78b0a20f75efe848d6846466bd1a",
+    "frontend/src/components/Layout.tsx": "aa97b772201f1a974a757e2baacb8ceb83cefb4cf1a28248d636a2f10af2a13d",
+    "frontend/src/lib/api.ts": "570a246e3b1d4e4df0f31ade2cd393dd953db8dbbeffde53cf21b9d121762c68",
+    "frontend/src/lib/auth-client.ts": "7ce310397e655a5ff6c9c42db9d368f6aa98fae1517781253ba9f805d0b99c86",
+    "frontend/src/lib/utils.ts": "7968be4b1a58d025af8cce5878dcfa8d257b08f946bae40cca4fa556f32defe1",
+    "frontend/src/main.tsx": "6b46e2d2e531ae564043c96848561bab15f519110d1f52e451bdc4dd2ef55b0a",
+    "frontend/src/pages/LoginPage.tsx": "9648512b9da8a2a45fd00296e3079ac20daaa60f978d891b6ad9f9e5e8f581c0",
+    "frontend/src/pages/SignupPage.tsx": "f20d2b1393b989b8b9a95c9c7ee796f077b6d22385b7a7f4240a4ce0bdf82968",
+    "frontend/src/pages/TodosPage.tsx": "bcfa4ce8e2c9250b445833f90e9a42b891f1ec2313622d346b7734113f9d785b",
+    "frontend/vite.config.ts": "b291661f07b996e07acc2d4dc909208debc0278cf8a4b2e62b22e76066454fe3",
+    "frontend/vitest.config.ts": "fd4c90f23961900596d99da40f16f0e67e203e7f910dd4e41072069a24856dff",
+    "shared/index.ts": "31a8680c82c67e759f68d615fb2c04f571105bc7213450cbe56985e18afd1ca2",
+    "shared/schemas/todo.ts": "8b94757935d6f6c62ca7624e21135b4d0619c8c86b5af36e6e65bd0e6610f000",
+    "shared/types/common.ts": "ed0e9cc74c260c9ff4c7ffc7b4820c8fb87e1ea13b2522c7dbe950b7c9e8d00c",
+    "shared/types/todo.ts": "162a364dd8b0b176e22d56921b65431e1cc8108f9244adfe2c5337aaf39225a6"
+  },
+  "indexed_at_commit": "81907cf0f0cc5bc021b7e6a21251c599b8bb0312",
+  "indexed_at_timestamp": "2026-03-28T20:34:41.190752+00:00",
+  "schema_version": 3,
+  "stats": {
+    "total_edges": 5,
+    "total_files": 28,
+    "total_nodes": 32
+  },
+  "vexp_version": "1.2.29"
+}

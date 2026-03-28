@@ -11,6 +11,9 @@
     "db:generate": "pnpm run --filter backend db:generate",
     "db:seed": "pnpm run --filter backend db:seed"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
   "devDependencies": {
     "concurrently": "^9.1.0"
   }
