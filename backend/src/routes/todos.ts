@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { eq, and, asc, max, sql } from 'drizzle-orm';
+import { eq, and, asc, max, inArray } from 'drizzle-orm';
 import { db } from '../db/client';
 import { todos } from '../db/schema';
 import {
@@ -88,7 +88,7 @@ const todosRoute = new Hono<{ Variables: Variables }>()
     const owned = await db.query.todos.findMany({
       where: and(
         eq(todos.userId, currentUser.id),
-        sql`${todos.id} = ANY(${itemIds})`,
+        inArray(todos.id, itemIds),
       ),
       columns: { id: true },
     });
