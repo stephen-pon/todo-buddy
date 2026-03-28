@@ -1,4 +1,8 @@
-# Todo Buddy Template — LLM Context
+# Todo Buddy — LLM Context
+
+## Project Vision
+
+Todo Buddy is an incrementally evolving productivity app. The goal is to experiment with different features and configurations to find the optimal personal productivity setup. Features are added iteratively — start simple, validate what works, then build on it.
 
 ## Architecture
 
