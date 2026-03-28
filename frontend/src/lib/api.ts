@@ -6,6 +6,6 @@ import type { AppType } from '@todo-buddy/backend';
 const baseURL = import.meta.env.VITE_API_URL || '/';
 
 export const client = hc<AppType>(baseURL, {
-  fetch: (input, init) =>
+  fetch: (input: RequestInfo | URL, init?: RequestInit) =>
     fetch(input, { ...init, credentials: 'include' }),
 });
