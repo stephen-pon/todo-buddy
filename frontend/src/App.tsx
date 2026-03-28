@@ -4,7 +4,7 @@ import { authClient } from './lib/auth-client';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
-import DashboardPage from './pages/DashboardPage';
+import TodosPage from './pages/TodosPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,19 +44,11 @@ export default function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <TodosPage />
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          {/* Add your routes here */}
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

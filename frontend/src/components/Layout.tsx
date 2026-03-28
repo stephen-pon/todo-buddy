@@ -17,10 +17,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Link to="/" className="font-semibold">
               Todo Buddy
             </Link>
-            <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-              Dashboard
+            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
+              Todos
             </Link>
-            {/* Add nav links here */}
           </nav>
           <button
             onClick={handleSignOut}
