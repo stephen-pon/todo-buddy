@@ -41,3 +41,5 @@ drizzle/
 
 # Dev Tools
 .claude/*
+.superpowers/
+.vexp/
