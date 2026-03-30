@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { eq, and, asc, max, inArray } from 'drizzle-orm';
+import { eq, and, asc, min, inArray } from 'drizzle-orm';
 import { db } from '../db/client';
 import { todos } from '../db/schema';
 import {
@@ -24,19 +24,19 @@ const todosRoute = new Hono<{ Variables: Variables }>()
     const currentUser = c.get('user');
 
     const result = await db
-      .select({ maxOrder: max(todos.sortOrder) })
+      .select({ minOrder: min(todos.sortOrder) })
       .from(todos)
       .where(eq(todos.userId, currentUser.id));
 
-    const maxOrder = result[0]?.maxOrder ?? null;
-    const nextOrder = (maxOrder ?? -1) + 1;
+    const minOrder = result[0]?.minOrder ?? null;
+    const newOrder = (minOrder ?? 1) - 1;
 
     const [newTodo] = await db
       .insert(todos)
       .values({
         title: data.title,
         dueDate: data.dueDate ?? null,
-        sortOrder: nextOrder,
+        sortOrder: newOrder,
         userId: currentUser.id,
       })
       .returning();
