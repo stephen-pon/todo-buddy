@@ -5,6 +5,7 @@ export interface Todo {
   title: string;
   completed: boolean;
   dueDate: Nullable<string>;
+  isToday: boolean;
   sortOrder: number;
   userId: UUID;
   createdAt: ISODateString;
