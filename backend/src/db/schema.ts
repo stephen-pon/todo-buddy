@@ -28,6 +28,7 @@ export const todos = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     title: text('title').notNull(),
     completed: boolean('completed').default(false).notNull(),
+    isToday: boolean('is_today').default(false).notNull(),
     dueDate: date('due_date'),
     sortOrder: integer('sort_order').notNull(),
     userId: uuid('user_id')
