@@ -23,20 +23,39 @@ const todosRoute = new Hono<{ Variables: Variables }>()
     const data = c.req.valid('json');
     const currentUser = c.get('user');
 
+    // Compute sortOrder for inbox
     const result = await db
       .select({ minOrder: min(todos.sortOrder) })
       .from(todos)
       .where(eq(todos.userId, currentUser.id));
-
     const minOrder = result[0]?.minOrder ?? null;
-    const newOrder = (minOrder ?? 1) - 1;
+    const newSortOrder = (minOrder ?? 1) - 1;
+
+    let projectSortOrder: number | null = null;
+    if (data.projectId) {
+      // Compute projectSortOrder (prepend within project)
+      const projectResult = await db
+        .select({ minOrder: min(todos.projectSortOrder) })
+        .from(todos)
+        .where(
+          and(
+            eq(todos.userId, currentUser.id),
+            eq(todos.projectId, data.projectId),
+          ),
+        );
+      const minProjectOrder = projectResult[0]?.minOrder ?? null;
+      projectSortOrder = (minProjectOrder ?? 1) - 1;
+    }
 
     const [newTodo] = await db
       .insert(todos)
       .values({
         title: data.title,
         dueDate: data.dueDate ?? null,
-        sortOrder: newOrder,
+        sortOrder: newSortOrder,
+        projectId: data.projectId ?? null,
+        inInbox: data.inInbox ?? !data.projectId, // Default: inbox if no project
+        projectSortOrder,
         userId: currentUser.id,
       })
       .returning();
@@ -54,9 +73,20 @@ const todosRoute = new Hono<{ Variables: Variables }>()
     if (existing.userId !== currentUser.id)
       return c.json({ error: 'Forbidden' }, 403);
 
+    // If pushing to inbox for the first time, assign a sortOrder
+    const updateData: Record<string, unknown> = { ...data };
+    if (data.inInbox === true && !existing.inInbox && existing.projectId) {
+      const result = await db
+        .select({ minOrder: min(todos.sortOrder) })
+        .from(todos)
+        .where(eq(todos.userId, currentUser.id));
+      const minOrder = result[0]?.minOrder ?? null;
+      updateData.sortOrder = (minOrder ?? 1) - 1;
+    }
+
     const [updated] = await db
       .update(todos)
-      .set(data)
+      .set(updateData)
       .where(eq(todos.id, id))
       .returning();
     return c.json(updated);
@@ -76,15 +106,13 @@ const todosRoute = new Hono<{ Variables: Variables }>()
     return c.json({ success: true });
   })
   .post('/reorder', zValidator('json', reorderTodosSchema), async (c) => {
-    const { items } = c.req.valid('json');
+    const { context, items } = c.req.valid('json');
     const currentUser = c.get('user');
 
-    // Validate no duplicate IDs
     const itemIds = items.map((i) => i.id);
     if (new Set(itemIds).size !== itemIds.length)
       return c.json({ error: 'Duplicate IDs in reorder request' }, 400);
 
-    // Validate all IDs belong to the authenticated user
     const owned = await db.query.todos.findMany({
       where: and(
         eq(todos.userId, currentUser.id),
@@ -95,11 +123,13 @@ const todosRoute = new Hono<{ Variables: Variables }>()
     if (owned.length !== itemIds.length)
       return c.json({ error: 'Forbidden' }, 403);
 
+    const sortField = context === 'project' ? 'projectSortOrder' : 'sortOrder';
+
     await db.transaction(async (tx) => {
       for (const item of items) {
         await tx
           .update(todos)
-          .set({ sortOrder: item.sortOrder })
+          .set({ [sortField]: item.sortOrder })
           .where(eq(todos.id, item.id));
       }
     });
