@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
-  DragOverlay,
   closestCorners,
   KeyboardSensor,
   PointerSensor,
@@ -10,7 +9,6 @@ import {
   useSensors,
   useDroppable,
   type DragEndEvent,
-  type DragStartEvent,
   type DragOverEvent,
 } from '@dnd-kit/core';
 import {
@@ -43,7 +41,11 @@ function SortableTodoItem({
   onDelete,
   onToggleToday,
   onRemoveFromInbox,
+  onAssignToProject,
+  onPushToInbox,
   projectId,
+  projects,
+  compact,
   isMobile,
 }: {
   todo: Todo;
@@ -51,105 +53,260 @@ function SortableTodoItem({
   onDelete: (id: string) => void;
   onToggleToday?: (id: string, currentIsToday: boolean) => void;
   onRemoveFromInbox?: (id: string) => void;
+  onAssignToProject?: (id: string, projectId: string) => void;
+  onPushToInbox?: (id: string, inInbox: boolean) => void;
   projectId?: string | null;
+  projects?: { id: string; name: string }[];
+  compact?: boolean;
   isMobile?: boolean;
 }) {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showMenu]);
+
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
-    transition,
     isDragging,
   } = useSortable({ id: todo.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
+    transition: 'transform 50ms ease',
+    opacity: isDragging ? 0.3 : 1,
   };
 
+  const iconSize = compact ? 12 : 16;
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-3 rounded-lg border border-border bg-background p-3"
-    >
-      <button
-        {...attributes}
-        {...listeners}
-        className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
-        aria-label="Drag to reorder"
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={compact
+          ? 'group flex items-center gap-2 rounded border border-border/50 p-2'
+          : 'group flex items-center gap-3 rounded-lg border border-border bg-background p-3'
+        }
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <circle cx="5" cy="3" r="1.5" />
-          <circle cx="11" cy="3" r="1.5" />
-          <circle cx="5" cy="8" r="1.5" />
-          <circle cx="11" cy="8" r="1.5" />
-          <circle cx="5" cy="13" r="1.5" />
-          <circle cx="11" cy="13" r="1.5" />
-        </svg>
-      </button>
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
+          aria-label="Drag to reorder"
+        >
+          <svg width={iconSize} height={iconSize} viewBox="0 0 16 16" fill="currentColor">
+            <circle cx="5" cy="3" r="1.5" />
+            <circle cx="11" cy="3" r="1.5" />
+            <circle cx="5" cy="8" r="1.5" />
+            <circle cx="11" cy="8" r="1.5" />
+            <circle cx="5" cy="13" r="1.5" />
+            <circle cx="11" cy="13" r="1.5" />
+          </svg>
+        </button>
 
-      <input
-        type="checkbox"
-        checked={todo.completed}
-        onChange={() => onToggle(todo.id, !todo.completed)}
-        className="h-4 w-4 rounded border-input"
-      />
+        <input
+          type="checkbox"
+          checked={todo.completed}
+          onChange={() => onToggle(todo.id, !todo.completed)}
+          className="h-4 w-4 rounded border-input"
+        />
 
-      <span
-        className={`flex-1 text-sm ${todo.completed ? 'text-muted-foreground line-through' : ''}`}
-      >
-        {todo.title}
-      </span>
-
-      {todo.dueDate && (
-        <span className="text-xs text-muted-foreground">
-          {new Date(todo.dueDate + 'T00:00:00').toLocaleDateString()}
+        <span className="flex flex-1 items-baseline gap-2">
+          <span
+            className={`text-sm ${todo.completed ? 'text-muted-foreground line-through' : ''}`}
+          >
+            {todo.title}
+          </span>
+          {projectId && projects && (() => {
+            const project = projects.find((p) => p.id === projectId);
+            return project ? (
+              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                {project.name}
+              </span>
+            ) : null;
+          })()}
         </span>
-      )}
 
-      {onRemoveFromInbox && projectId && (
-        <button
-          onClick={() => onRemoveFromInbox(todo.id)}
-          className="text-muted-foreground hover:text-foreground"
-          aria-label="Remove from inbox"
-          title="Remove from inbox (back to project only)"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-        </button>
-      )}
+        {todo.dueDate && (
+          <span className="text-xs text-muted-foreground">
+            {new Date(todo.dueDate + 'T00:00:00').toLocaleDateString()}
+          </span>
+        )}
 
-      {isMobile && onToggleToday && (
-        <button
-          onClick={() => onToggleToday(todo.id, todo.isToday)}
-          className="text-sm text-muted-foreground hover:text-amber-500"
-          aria-label={todo.isToday ? 'Move to backlog' : 'Move to today'}
-          title={todo.isToday ? 'Move to backlog' : 'Move to today'}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            {todo.isToday ? (
-              <path d="M19 12H5M12 5l-7 7 7 7" />
-            ) : (
-              <path d="M12 3v6l3-3M12 3 9 6M12 3a9 9 0 1 1-9 9" />
-            )}
-          </svg>
-        </button>
-      )}
+        {onPushToInbox && !todo.inInbox && (
+          <button
+            onClick={() => onPushToInbox(todo.id, true)}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="Push to inbox"
+            title="Push to inbox"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
 
-      <button
-        onClick={() => onDelete(todo.id)}
-        className="text-sm text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:[.group:hover_&]:opacity-100"
-        aria-label="Delete todo"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M18 6 6 18M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
+        {onPushToInbox && todo.inInbox && (
+          <span className="text-xs text-muted-foreground" title="In inbox">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
+              <path d="M22 12h-6l-2 3H10l-2-3H2" />
+              <path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" />
+            </svg>
+          </span>
+        )}
+
+        {isMobile && onToggleToday && (
+          <button
+            onClick={() => onToggleToday(todo.id, todo.isToday)}
+            className="text-sm text-muted-foreground hover:text-amber-500"
+            aria-label={todo.isToday ? 'Move to backlog' : 'Move to today'}
+            title={todo.isToday ? 'Move to backlog' : 'Move to today'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {todo.isToday ? (
+                <path d="M19 12H5M12 5l-7 7 7 7" />
+              ) : (
+                <path d="M12 3v6l3-3M12 3 9 6M12 3a9 9 0 1 1-9 9" />
+              )}
+            </svg>
+          </button>
+        )}
+
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="Actions"
+          >
+            <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="5" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="12" cy="19" r="2" />
+            </svg>
+          </button>
+          {showMenu && (
+            <div className="absolute right-0 top-7 z-10 min-w-[180px] rounded-md border border-border bg-background p-1 shadow-md">
+              {onAssignToProject && !projectId && projects && projects.length > 0 && (
+                <>
+                  <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground">Assign to project</div>
+                  {projects.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        onAssignToProject(todo.id, p.id);
+                        setShowMenu(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-foreground hover:bg-muted"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                      </svg>
+                      {p.name}
+                    </button>
+                  ))}
+                  <div className="my-1 border-t border-border" />
+                </>
+              )}
+              {onRemoveFromInbox && projectId && (
+                <>
+                  <button
+                    onClick={() => {
+                      onRemoveFromInbox(todo.id);
+                      setShowMenu(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-foreground hover:bg-muted"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    Remove from inbox
+                  </button>
+                  <div className="my-1 border-t border-border" />
+                </>
+              )}
+              <button
+                onClick={() => {
+                  onDelete(todo.id);
+                  setShowMenu(false);
+                }}
+                className="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-destructive hover:bg-muted"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+  );
+}
+
+function TodoList({
+  droppableId,
+  todos,
+  onToggle,
+  onDelete,
+  onToggleToday,
+  onRemoveFromInbox,
+  onAssignToProject,
+  projects,
+  emptyText,
+  isMobile,
+}: {
+  droppableId: string;
+  todos: Todo[];
+  onToggle: (id: string, completed: boolean) => void;
+  onDelete: (id: string) => void;
+  onToggleToday?: (id: string, currentIsToday: boolean) => void;
+  onRemoveFromInbox?: (id: string) => void;
+  onAssignToProject?: (id: string, projectId: string) => void;
+  projects?: { id: string; name: string }[];
+  emptyText: string;
+  isMobile?: boolean;
+}) {
+  return (
+    <DroppableColumn id={droppableId}>
+      <SortableContext items={todos.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+        <div className={isMobile ? 'space-y-2' : 'min-h-[100px] space-y-2'}>
+          {todos.length > 0 ? (
+            todos.map((todo) => (
+              <div key={todo.id} className="group">
+                <SortableTodoItem
+                  todo={todo}
+                  onToggle={onToggle}
+                  onDelete={onDelete}
+                  onToggleToday={onToggleToday}
+                  onRemoveFromInbox={onRemoveFromInbox}
+                  onAssignToProject={onAssignToProject}
+                  projectId={todo.projectId}
+                  projects={projects}
+                  isMobile={isMobile}
+                />
+              </div>
+            ))
+          ) : isMobile ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">{emptyText}</p>
+          ) : (
+            <div className="flex min-h-[100px] items-center justify-center rounded-lg border-2 border-dashed border-border">
+              <p className="text-sm text-muted-foreground">{emptyText}</p>
+            </div>
+          )}
+        </div>
+      </SortableContext>
+    </DroppableColumn>
   );
 }
 
@@ -170,6 +327,7 @@ function ProjectCard({
   onToggleTodo,
   onDeleteTodo,
   onPushToInbox,
+  onReorder,
   newTodoTitle,
   onNewTodoTitleChange,
   onCreateTodo,
@@ -183,11 +341,21 @@ function ProjectCard({
   onToggleTodo: (id: string, completed: boolean) => void;
   onDeleteTodo: (id: string) => void;
   onPushToInbox: (id: string, inInbox: boolean) => void;
+  onReorder: (items: { id: string; sortOrder: number }[], onSettled: () => void) => void;
   newTodoTitle: string;
   onNewTodoTitleChange: (value: string) => void;
   onCreateTodo: (title: string, projectId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [localTodos, setLocalTodos] = useState<Todo[] | null>(null);
+  const displayTodos = localTodos ?? project.todos;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const handleDelete = () => {
     const todoCount = project.todos.length;
@@ -197,6 +365,22 @@ function ProjectCard({
     if (window.confirm(message)) {
       onDelete(project.id);
     }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const todos = displayTodos;
+    const oldIndex = todos.findIndex((t) => t.id === active.id);
+    const newIndex = todos.findIndex((t) => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(todos, oldIndex, newIndex);
+    setLocalTodos(reordered);
+
+    const items = reordered.map((t, i) => ({ id: t.id, sortOrder: i }));
+    onReorder(items, () => setLocalTodos(null));
   };
 
   return (
@@ -233,49 +417,28 @@ function ProjectCard({
       </div>
       {expanded && (
         <div className="space-y-2 px-3 pb-3">
-          {project.todos.map((todo) => (
-            <div key={todo.id} className="group flex items-center gap-2 rounded border border-border/50 p-2">
-              <input
-                type="checkbox"
-                checked={todo.completed}
-                onChange={() => onToggleTodo(todo.id, !todo.completed)}
-                className="h-4 w-4 rounded border-input"
-              />
-              <span
-                className={`flex-1 text-sm ${todo.completed ? 'text-muted-foreground line-through' : ''}`}
-              >
-                {todo.title}
-              </span>
-              {!todo.inInbox ? (
-                <button
-                  onClick={() => onPushToInbox(todo.id, true)}
-                  className="text-muted-foreground hover:text-foreground"
-                  aria-label="Push to inbox"
-                  title="Push to inbox"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </button>
-              ) : (
-                <span className="text-xs text-muted-foreground" title="In inbox">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
-                    <path d="M22 12h-6l-2 3H10l-2-3H2" />
-                    <path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" />
-                  </svg>
-                </span>
-              )}
-              <button
-                onClick={() => onDeleteTodo(todo.id)}
-                className="text-sm text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
-                aria-label="Delete todo"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6 6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          ))}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={displayTodos.map((t) => t.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {displayTodos.map((todo) => (
+                <div key={todo.id} className="group">
+                  <SortableTodoItem
+                    todo={todo}
+                    onToggle={(id, completed) => onToggleTodo(id, completed)}
+                    onDelete={(id) => onDeleteTodo(id)}
+                    onPushToInbox={onPushToInbox}
+                    compact
+                  />
+                </div>
+              ))}
+            </SortableContext>
+          </DndContext>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -311,7 +474,6 @@ export default function TodosPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
 
-  const [activeTodo, setActiveTodo] = useState<Todo | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -363,6 +525,21 @@ export default function TodosPage() {
     },
   });
 
+  const assignToProjectMutation = useMutation({
+    mutationFn: async ({ id, projectId }: { id: string; projectId: string }) => {
+      const res = await client.api.todos[':id'].$put({
+        param: { id },
+        json: { projectId, inInbox: true },
+      });
+      if (!res.ok) throw new Error('Failed to assign to project');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+
   const pushToInboxMutation = useMutation({
     mutationFn: async ({ id, inInbox }: { id: string; inInbox: boolean }) => {
       const res = await client.api.todos[':id'].$put({
@@ -395,20 +572,25 @@ export default function TodosPage() {
     },
   });
 
+  const projectReorderMutation = useMutation({
+    mutationFn: async (items: { id: string; sortOrder: number }[]) => {
+      const res = await client.api.todos.reorder.$post({
+        json: { context: 'project' as const, items },
+      });
+      if (!res.ok) throw new Error('Failed to reorder project todos');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+
   const isMobile = useMediaQuery('(max-width: 767px)');
   const [activeTab, setActiveTab] = useState<'projects' | 'todos' | 'today'>('todos');
 
-  const backlogFromServer = todos.filter(
+  const backlogTodos = todos.filter(
     (t) => !t.isToday && (t.projectId === null || t.inInbox),
   );
-  const todayFromServer = todos.filter((t) => t.isToday);
-
-  // Local state for drag-in-progress reordering
-  const [localBacklog, setLocalBacklog] = useState<Todo[] | null>(null);
-  const [localToday, setLocalToday] = useState<Todo[] | null>(null);
-
-  const backlogTodos = localBacklog ?? backlogFromServer;
-  const todayTodos = localToday ?? todayFromServer;
+  const todayTodos = todos.filter((t) => t.isToday);
 
   const createMutation = useMutation({
     mutationFn: async (data: { title: string; dueDate?: string }) => {
@@ -510,20 +692,24 @@ export default function TodosPage() {
     );
   };
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const todo = todos.find((t) => t.id === event.active.id);
-    setActiveTodo(todo ?? null);
-    // Snapshot current lists for local manipulation during drag
-    setLocalBacklog(backlogFromServer);
-    setLocalToday(todayFromServer);
-  };
+  // Local state for drag-in-progress reordering
+  const [localBacklog, setLocalBacklog] = useState<Todo[] | null>(null);
+  const [localToday, setLocalToday] = useState<Todo[] | null>(null);
+
+  const displayBacklog = localBacklog ?? backlogTodos;
+  const displayToday = localToday ?? todayTodos;
 
   const findContainer = (id: string): 'backlog' | 'today' | null => {
     if (id === 'backlog-droppable') return 'backlog';
     if (id === 'today-droppable') return 'today';
-    if (backlogTodos.some((t) => t.id === id)) return 'backlog';
-    if (todayTodos.some((t) => t.id === id)) return 'today';
+    if (displayBacklog.some((t) => t.id === id)) return 'backlog';
+    if (displayToday.some((t) => t.id === id)) return 'today';
     return null;
+  };
+
+  const handleDragStart = () => {
+    setLocalBacklog(backlogTodos);
+    setLocalToday(todayTodos);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -539,8 +725,8 @@ export default function TodosPage() {
     if (!activeContainer || !overContainer || activeContainer === overContainer) return;
 
     // Move item between containers in local state
-    const sourceList = activeContainer === 'backlog' ? [...backlogTodos] : [...todayTodos];
-    const destList = overContainer === 'backlog' ? [...backlogTodos] : [...todayTodos];
+    const sourceList = activeContainer === 'backlog' ? [...displayBacklog] : [...displayToday];
+    const destList = overContainer === 'backlog' ? [...displayBacklog] : [...displayToday];
 
     const activeIndex = sourceList.findIndex((t) => t.id === activeId);
     if (activeIndex === -1) return;
@@ -549,7 +735,6 @@ export default function TodosPage() {
     sourceList.splice(activeIndex, 1);
     const updatedItem = { ...movedItem, isToday: overContainer === 'today' };
 
-    // Insert at the position of the item being hovered, or at end if hovering the droppable
     const overIndex = destList.findIndex((t) => t.id === overId);
     if (overIndex >= 0) {
       destList.splice(overIndex, 0, updatedItem);
@@ -569,11 +754,9 @@ export default function TodosPage() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    // Finalize local state into the query cache
-    const finalBacklog = backlogTodos;
-    const finalToday = todayTodos;
+    const finalBacklog = displayBacklog;
+    const finalToday = displayToday;
 
-    // Clear local drag state
     setLocalBacklog(null);
     setLocalToday(null);
 
@@ -612,7 +795,7 @@ export default function TodosPage() {
       }
     }
 
-    // Check if item crossed containers (comparing to server state)
+    // Check if item crossed containers
     const originalTodo = todos.find((t) => t.id === activeId);
     if (!originalTodo) return;
 
@@ -620,7 +803,6 @@ export default function TodosPage() {
     const wasInToday = originalTodo.isToday;
 
     if (nowInToday !== wasInToday) {
-      // Persist with sort orders
       const targetList = nowInToday ? finalToday : finalBacklog;
       const withOrder = targetList.map((t, i) => ({ ...t, sortOrder: i }));
       const otherList = nowInToday ? finalBacklog : finalToday;
@@ -673,6 +855,12 @@ export default function TodosPage() {
               onToggleTodo={(id, completed) => updateMutation.mutate({ id, completed })}
               onDeleteTodo={(id) => deleteMutation.mutate(id)}
               onPushToInbox={(id, inInbox) => pushToInboxMutation.mutate({ id, inInbox })}
+              onReorder={(items, onSettled) =>
+                projectReorderMutation.mutate(items, {
+                  onSettled,
+                  onError: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
+                })
+              }
               newTodoTitle={projectTodoInputs[project.id] ?? ''}
               onNewTodoTitleChange={(value) =>
                 setProjectTodoInputs((prev) => ({ ...prev, [project.id]: value }))
@@ -740,10 +928,8 @@ export default function TodosPage() {
           onDragOver={handleDragOver}
           onDragEnd={(event) => {
             handleDragEnd(event);
-            setActiveTodo(null);
           }}
           onDragCancel={() => {
-            setActiveTodo(null);
             setLocalBacklog(null);
             setLocalToday(null);
           }}
@@ -775,55 +961,31 @@ export default function TodosPage() {
                       Add
                     </button>
                   </form>
-                  <DroppableColumn id="backlog-droppable">
-                    <SortableContext items={backlogTodos.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                      <div className="space-y-2">
-                        {backlogTodos.length > 0 ? (
-                          backlogTodos.map((todo) => (
-                            <div key={todo.id} className="group">
-                              <SortableTodoItem
-                                todo={todo}
-                                onToggle={(id, completed) => updateMutation.mutate({ id, completed })}
-                                onDelete={(id) => deleteMutation.mutate(id)}
-                                onToggleToday={handleToggleToday}
-                                onRemoveFromInbox={(id) => pushToInboxMutation.mutate({ id, inInbox: false })}
-                                projectId={todo.projectId}
-                                isMobile={true}
-                              />
-                            </div>
-                          ))
-                        ) : (
-                          <p className="py-8 text-center text-sm text-muted-foreground">No inbox items</p>
-                        )}
-                      </div>
-                    </SortableContext>
-                  </DroppableColumn>
+                  <TodoList
+                    droppableId="backlog-droppable"
+                    todos={displayBacklog}
+                    onToggle={(id, completed) => updateMutation.mutate({ id, completed })}
+                    onDelete={(id) => deleteMutation.mutate(id)}
+                    onToggleToday={handleToggleToday}
+                    onRemoveFromInbox={(id) => pushToInboxMutation.mutate({ id, inInbox: false })}
+                    onAssignToProject={(id, projectId) => assignToProjectMutation.mutate({ id, projectId })}
+                    projects={projectsData}
+                    emptyText="No inbox items"
+                    isMobile
+                  />
                 </>
               )}
               {activeTab === 'today' && (
-                <DroppableColumn id="today-droppable">
-                  <SortableContext items={todayTodos.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                    <div className="space-y-2">
-                      {todayTodos.length > 0 ? (
-                        todayTodos.map((todo) => (
-                          <div key={todo.id} className="group">
-                            <SortableTodoItem
-                              todo={todo}
-                              onToggle={(id, completed) => updateMutation.mutate({ id, completed })}
-                              onDelete={(id) => deleteMutation.mutate(id)}
-                              onToggleToday={handleToggleToday}
-                              isMobile={true}
-                            />
-                          </div>
-                        ))
-                      ) : (
-                        <p className="py-8 text-center text-sm text-muted-foreground">
-                          No tasks for today. Switch to Inbox and tap the sun icon to add some!
-                        </p>
-                      )}
-                    </div>
-                  </SortableContext>
-                </DroppableColumn>
+                <TodoList
+                  droppableId="today-droppable"
+                  todos={displayToday}
+                  onToggle={(id, completed) => updateMutation.mutate({ id, completed })}
+                  onDelete={(id) => deleteMutation.mutate(id)}
+                  onToggleToday={handleToggleToday}
+                  projects={projectsData}
+                  emptyText="No tasks for today. Switch to Inbox and tap the sun icon to add some!"
+                  isMobile
+                />
               )}
             </div>
           ) : (
@@ -856,87 +1018,31 @@ export default function TodosPage() {
                     Add
                   </button>
                 </form>
-                <DroppableColumn id="backlog-droppable">
-                  <SortableContext items={backlogTodos.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                    <div className="min-h-[100px] space-y-2">
-                      {backlogTodos.length > 0 ? (
-                        backlogTodos.map((todo) => (
-                          <div key={todo.id} className="group">
-                            <SortableTodoItem
-                              todo={todo}
-                              onToggle={(id, completed) => updateMutation.mutate({ id, completed })}
-                              onDelete={(id) => deleteMutation.mutate(id)}
-                              onRemoveFromInbox={(id) => pushToInboxMutation.mutate({ id, inInbox: false })}
-                              projectId={todo.projectId}
-                            />
-                          </div>
-                        ))
-                      ) : (
-                        <div className="flex min-h-[100px] items-center justify-center rounded-lg border-2 border-dashed border-border">
-                          <p className="text-sm text-muted-foreground">No inbox items</p>
-                        </div>
-                      )}
-                    </div>
-                  </SortableContext>
-                </DroppableColumn>
+                <TodoList
+                  droppableId="backlog-droppable"
+                  todos={displayBacklog}
+                  onToggle={(id, completed) => updateMutation.mutate({ id, completed })}
+                  onDelete={(id) => deleteMutation.mutate(id)}
+                  onRemoveFromInbox={(id) => pushToInboxMutation.mutate({ id, inInbox: false })}
+                  onAssignToProject={(id, projectId) => assignToProjectMutation.mutate({ id, projectId })}
+                  projects={projectsData}
+                  emptyText="No inbox items"
+                />
               </div>
 
               <div className="flex-1 space-y-4">
                 <h2 className="text-lg font-semibold text-amber-500">Today</h2>
-                <DroppableColumn id="today-droppable">
-                  <SortableContext items={todayTodos.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                    <div className="min-h-[100px] space-y-2">
-                      {todayTodos.length > 0 ? (
-                        todayTodos.map((todo) => (
-                          <div key={todo.id} className="group">
-                            <SortableTodoItem
-                              todo={todo}
-                              onToggle={(id, completed) => updateMutation.mutate({ id, completed })}
-                              onDelete={(id) => deleteMutation.mutate(id)}
-                            />
-                          </div>
-                        ))
-                      ) : (
-                        <div className="flex min-h-[100px] items-center justify-center rounded-lg border-2 border-dashed border-border">
-                          <p className="text-sm text-muted-foreground">Drag todos here to focus on them today</p>
-                        </div>
-                      )}
-                    </div>
-                  </SortableContext>
-                </DroppableColumn>
+                <TodoList
+                  droppableId="today-droppable"
+                  todos={displayToday}
+                  onToggle={(id, completed) => updateMutation.mutate({ id, completed })}
+                  onDelete={(id) => deleteMutation.mutate(id)}
+                  projects={projectsData}
+                  emptyText="Drag todos here to focus on them today"
+                />
               </div>
             </div>
           )}
-          <DragOverlay dropAnimation={null}>
-            {activeTodo ? (
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-background p-3 shadow-lg">
-                <span className="cursor-grabbing text-muted-foreground">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <circle cx="5" cy="3" r="1.5" />
-                    <circle cx="11" cy="3" r="1.5" />
-                    <circle cx="5" cy="8" r="1.5" />
-                    <circle cx="11" cy="8" r="1.5" />
-                    <circle cx="5" cy="13" r="1.5" />
-                    <circle cx="11" cy="13" r="1.5" />
-                  </svg>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={activeTodo.completed}
-                  readOnly
-                  className="h-4 w-4 rounded border-input"
-                />
-                <span className={`flex-1 text-sm ${activeTodo.completed ? 'text-muted-foreground line-through' : ''}`}>
-                  {activeTodo.title}
-                </span>
-                {activeTodo.dueDate && (
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(activeTodo.dueDate + 'T00:00:00').toLocaleDateString()}
-                  </span>
-                )}
-              </div>
-            ) : null}
-          </DragOverlay>
         </DndContext>
       )}
 

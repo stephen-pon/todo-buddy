@@ -16,11 +16,14 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const result = await authClient.signUp.email({ name, email, password });
+      const result = await authClient.signUp.email({
+        name,
+        email,
+        password,
+        fetchOptions: { onSuccess: () => navigate('/') },
+      });
       if (result.error) {
         setError(result.error.message || 'Sign up failed');
-      } else {
-        navigate('/dashboard');
       }
     } catch {
       setError('An unexpected error occurred');

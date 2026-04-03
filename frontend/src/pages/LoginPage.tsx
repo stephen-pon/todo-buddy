@@ -15,11 +15,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await authClient.signIn.email({ email, password });
+      const result = await authClient.signIn.email({
+        email,
+        password,
+        fetchOptions: { onSuccess: () => navigate('/') },
+      });
       if (result.error) {
         setError(result.error.message || 'Sign in failed');
-      } else {
-        navigate('/dashboard');
       }
     } catch {
       setError('An unexpected error occurred');
