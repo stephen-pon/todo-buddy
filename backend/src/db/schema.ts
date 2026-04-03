@@ -29,6 +29,11 @@ export const todos = pgTable(
     title: text('title').notNull(),
     completed: boolean('completed').default(false).notNull(),
     isToday: boolean('is_today').default(false).notNull(),
+    projectId: uuid('project_id').references(() => projects.id, {
+      onDelete: 'cascade',
+    }),
+    inInbox: boolean('in_inbox').default(false).notNull(),
+    projectSortOrder: integer('project_sort_order'),
     dueDate: date('due_date'),
     sortOrder: integer('sort_order').notNull(),
     userId: uuid('user_id')
@@ -48,4 +53,34 @@ export const todosRelations = relations(todos, ({ one }) => ({
     fields: [todos.userId],
     references: [user.id],
   }),
+  project: one(projects, {
+    fields: [todos.projectId],
+    references: [projects.id],
+  }),
+}));
+
+export const projects = pgTable(
+  'projects',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    sortOrder: integer('sort_order').notNull(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index('projects_userId_sortOrder_idx').on(table.userId, table.sortOrder)],
+);
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  user: one(user, {
+    fields: [projects.userId],
+    references: [user.id],
+  }),
+  todos: many(todos),
 }));
