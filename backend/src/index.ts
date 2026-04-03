@@ -8,6 +8,7 @@ import { authMiddleware } from './middleware/auth';
 import { errorHandler } from './middleware/error-handler';
 import type { Variables } from './types/hono';
 import todosRoute from './routes/todos';
+import projectsRoute from './routes/projects';
 
 const app = new Hono<{ Variables: Variables }>();
 
@@ -49,7 +50,9 @@ app.use('/api/*', async (c, next) => {
 
 // Mount API routes — chain on a single variable for Hono RPC type inference
 // Example: const routes = app.route('/api/posts', postsRoute);
-const routes = app.route('/api/todos', todosRoute);
+const routes = app
+  .route('/api/todos', todosRoute)
+  .route('/api/projects', projectsRoute);
 
 // Global error handler
 app.onError(errorHandler);
