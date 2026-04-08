@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import { authClient } from '../lib/auth-client';
 
 export default function LoginPage() {
@@ -85,12 +85,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <Link to="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
-            Sign up
-          </Link>
-        </p>
+        {/* Sign up disabled — personal app, no new accounts */}
       </div>
     </div>
   );

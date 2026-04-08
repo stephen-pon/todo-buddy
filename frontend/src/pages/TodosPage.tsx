@@ -757,10 +757,11 @@ export default function TodosPage() {
     const finalBacklog = displayBacklog;
     const finalToday = displayToday;
 
-    setLocalBacklog(null);
-    setLocalToday(null);
-
-    if (!over) return;
+    if (!over) {
+      setLocalBacklog(null);
+      setLocalToday(null);
+      return;
+    }
 
     const activeId = active.id as string;
     const overId = over.id as string;
@@ -778,6 +779,8 @@ export default function TodosPage() {
         const withOrder = reordered.map((t, i) => ({ ...t, sortOrder: i }));
         const otherList = activeContainer === 'backlog' ? finalToday : finalBacklog;
         queryClient.setQueryData(['todos'], [...otherList, ...withOrder]);
+        setLocalBacklog(null);
+        setLocalToday(null);
 
         const items = withOrder
           .filter((t) => {
@@ -797,7 +800,11 @@ export default function TodosPage() {
 
     // Check if item crossed containers
     const originalTodo = todos.find((t) => t.id === activeId);
-    if (!originalTodo) return;
+    if (!originalTodo) {
+      setLocalBacklog(null);
+      setLocalToday(null);
+      return;
+    }
 
     const nowInToday = finalToday.some((t) => t.id === activeId);
     const wasInToday = originalTodo.isToday;
@@ -807,12 +814,17 @@ export default function TodosPage() {
       const withOrder = targetList.map((t, i) => ({ ...t, sortOrder: i }));
       const otherList = nowInToday ? finalBacklog : finalToday;
       queryClient.setQueryData(['todos'], [...otherList, ...withOrder]);
+      setLocalBacklog(null);
+      setLocalToday(null);
 
       const movedTodo = withOrder.find((t) => t.id === activeId);
       moveMutation.mutate(
         { id: activeId, isToday: nowInToday, sortOrder: movedTodo?.sortOrder ?? 0 },
         { onError: () => queryClient.invalidateQueries({ queryKey: ['todos'] }) }
       );
+    } else {
+      setLocalBacklog(null);
+      setLocalToday(null);
     }
   };
 
