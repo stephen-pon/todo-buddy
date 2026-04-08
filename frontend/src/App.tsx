@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { authClient } from './lib/auth-client';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
 import TodosPage from './pages/TodosPage';
 
 const queryClient = new QueryClient({
