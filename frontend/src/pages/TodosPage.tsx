@@ -575,7 +575,7 @@ export default function TodosPage() {
   const projectReorderMutation = useMutation({
     mutationFn: async (items: { id: string; sortOrder: number }[]) => {
       const res = await client.api.todos.reorder.$post({
-        json: { context: 'project' as const, items },
+        json: { context: 'projectSortOrder' as const, items },
       });
       if (!res.ok) throw new Error('Failed to reorder project todos');
     },
@@ -635,7 +635,7 @@ export default function TodosPage() {
   const reorderMutation = useMutation({
     mutationFn: async (items: { id: string; sortOrder: number }[]) => {
       const res = await client.api.todos.reorder.$post({
-        json: { context: 'inbox' as const, items },
+        json: { context: 'sortOrder' as const, items },
       });
       if (!res.ok) throw new Error('Failed to reorder todos');
     },
@@ -768,6 +768,45 @@ export default function TodosPage() {
 
     const activeContainer = findContainer(activeId);
 
+    // If the item crossed containers (detected via local state vs original),
+    // persist the isToday change first. Otherwise the within-column reorder
+    // branch below would only send sortOrder and the cross-container move
+    // would be lost on refresh.
+    const originalTodo = todos.find((t) => t.id === activeId);
+    if (originalTodo && activeContainer) {
+      const crossedContainers =
+        (activeContainer === 'today') !== originalTodo.isToday;
+      if (crossedContainers) {
+        const targetList = activeContainer === 'today' ? finalToday : finalBacklog;
+        const reordered =
+          activeId !== overId
+            ? (() => {
+                const oldIndex = targetList.findIndex((t) => t.id === activeId);
+                const newIndex = targetList.findIndex((t) => t.id === overId);
+                return oldIndex !== -1 && newIndex !== -1
+                  ? arrayMove(targetList, oldIndex, newIndex)
+                  : targetList;
+              })()
+            : targetList;
+        const withOrder = reordered.map((t, i) => ({ ...t, sortOrder: i }));
+        const otherList = activeContainer === 'today' ? finalBacklog : finalToday;
+        queryClient.setQueryData(['todos'], [...otherList, ...withOrder]);
+        setLocalBacklog(null);
+        setLocalToday(null);
+
+        const movedTodo = withOrder.find((t) => t.id === activeId);
+        moveMutation.mutate(
+          {
+            id: activeId,
+            isToday: activeContainer === 'today',
+            sortOrder: movedTodo?.sortOrder ?? 0,
+          },
+          { onError: () => queryClient.invalidateQueries({ queryKey: ['todos'] }) }
+        );
+        return;
+      }
+    }
+
     // Handle within-column reorder
     if (activeId !== overId && activeContainer) {
       const list = activeContainer === 'backlog' ? [...finalBacklog] : [...finalToday];
@@ -798,34 +837,8 @@ export default function TodosPage() {
       }
     }
 
-    // Check if item crossed containers
-    const originalTodo = todos.find((t) => t.id === activeId);
-    if (!originalTodo) {
-      setLocalBacklog(null);
-      setLocalToday(null);
-      return;
-    }
-
-    const nowInToday = finalToday.some((t) => t.id === activeId);
-    const wasInToday = originalTodo.isToday;
-
-    if (nowInToday !== wasInToday) {
-      const targetList = nowInToday ? finalToday : finalBacklog;
-      const withOrder = targetList.map((t, i) => ({ ...t, sortOrder: i }));
-      const otherList = nowInToday ? finalBacklog : finalToday;
-      queryClient.setQueryData(['todos'], [...otherList, ...withOrder]);
-      setLocalBacklog(null);
-      setLocalToday(null);
-
-      const movedTodo = withOrder.find((t) => t.id === activeId);
-      moveMutation.mutate(
-        { id: activeId, isToday: nowInToday, sortOrder: movedTodo?.sortOrder ?? 0 },
-        { onError: () => queryClient.invalidateQueries({ queryKey: ['todos'] }) }
-      );
-    } else {
-      setLocalBacklog(null);
-      setLocalToday(null);
-    }
+    setLocalBacklog(null);
+    setLocalToday(null);
   };
 
   const hasCompleted = todos.some((t) => t.completed);

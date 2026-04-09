@@ -61,6 +61,10 @@ pnpm run db:push      # Push schema to database
 pnpm run db:seed      # Seed sample data
 ```
 
+## Pre-Completion Checklist
+
+Before finalizing any code change, always run `pnpm run typecheck` and confirm it passes. This catches unused imports, type errors, and other issues that would break the production build.
+
 ## Adding a New Entity
 
 1. **shared/types/{entity}.ts** — Define TypeScript types

@@ -123,7 +123,7 @@ const todosRoute = new Hono<{ Variables: Variables }>()
     if (owned.length !== itemIds.length)
       return c.json({ error: 'Forbidden' }, 403);
 
-    const sortField = context === 'project' ? 'projectSortOrder' : 'sortOrder';
+    const sortField = context;
 
     await db.transaction(async (tx) => {
       for (const item of items) {

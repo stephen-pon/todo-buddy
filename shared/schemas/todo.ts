@@ -19,7 +19,7 @@ export const updateTodoSchema = z.object({
 });
 
 export const reorderTodosSchema = z.object({
-  context: z.enum(['inbox', 'project']).default('inbox'),
+  context: z.enum(['sortOrder', 'projectSortOrder']).default('sortOrder'),
   items: z
     .array(
       z.object({
